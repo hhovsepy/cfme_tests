@@ -84,6 +84,12 @@ sections = {
         ('control_import_export', 'Import / Export'),
         ('control_log', 'Log')
     ),
+    ('middleware', 'Middleware'): (
+        ('middleware_providers', 'Providers'),
+        ('middleware_servers', 'Middleware Servers'),
+        ('middleware_deployments', 'Middleware Deployments'),
+        ('middleware_topology', 'Topology')
+    ),  
     ('automate', 'Automate'): (
         ('automate_explorer', 'Explorer'),
         ('automate_simulation', 'Simulation'),
