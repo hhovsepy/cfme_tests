@@ -3,6 +3,10 @@ from cfme.web_ui import (
     Form, AngularSelect, form_buttons, Input
 )
 from cfme.web_ui.menu import nav
+from cfme.middleware import providers
+from cfme.middleware import servers
+from cfme.middleware import deployments
+from cfme.middleware import topology
 
 from . import cfg_btn, mon_btn, pol_btn, list_tbl
 from utils.varmeth import variable
@@ -87,3 +91,15 @@ class HawkularProvider(BaseProvider):
     @num_server.variant('ui')
     def num_server_ui(self):
         return int(self.get_detail("Relationships", "Middleware Servers"))
+
+    def providers_tab(self):
+        return providers.Providers(self.name)
+
+    def servers_tab(self):
+        return servers.Servers(self.name)
+
+    def deployments_tab(self):
+        return deployments.Deployments(self.name)
+
+    def topology_tab(self):
+        return topology.Topology(self.name)

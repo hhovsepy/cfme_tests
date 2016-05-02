@@ -3,6 +3,10 @@ import pytest
 
 from utils import testgen
 from utils.update import update
+from cfme.middleware import providers
+from cfme.middleware import servers
+from cfme.middleware import deployments
+from cfme.middleware import topology
 
 
 def pytest_generate_tests(metafunc):
@@ -19,15 +23,20 @@ def test_hawkular_crud(provider):
     added providers between test runs
     """
     provider.create(cancel=False, validate_credentials=False)
-
     # TODO validate provider details via mgmt_system
 
-    old_name = provider.name
-    with update(provider):
-        provider.name = str(uuid.uuid4())  # random uuid
+    provs = provider.providers_tab()
+    provs.nav_to_providers_view()
+    provs.nav_to_provider_detailed_view()
 
-    with update(provider):
-        provider.name = old_name  # old name
+    servs = provider.servers_tab()
+    servs.nav_to_servers_view()
+
+    depls = provider.deployments_tab()
+    depls.nav_to_deployments_view()
+
+    topol = provider.topology_tab()
+    topol.nav_to_topology_view()
 
     provider.delete(cancel=False)
     provider.wait_for_delete()
