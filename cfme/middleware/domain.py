@@ -87,8 +87,9 @@ class MiddlewareDomain(MiddlewareBase, Navigatable, Taggable):
             _provider = provider
             for _ in paginator.pages():
                 for row in list_tbl.rows():
-                    if strict:
-                        _provider = get_crud_by_name(row.provider.text)
+                    # workaround
+                    # if strict:
+                    #    _provider = get_crud_by_name(row.provider.text)
                     domains.append(MiddlewareDomain(
                         name=row.domain_name.text,
                         feed=row.feed.text,

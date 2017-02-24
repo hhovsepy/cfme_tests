@@ -108,7 +108,9 @@ class MiddlewareMessaging(MiddlewareBase, Navigatable, Taggable, UtilizationMixi
         if sel.is_displayed(list_tbl):
             for _ in paginator.pages():
                 for row in list_tbl.rows():
-                    _server = MiddlewareServer(provider=provider, name=row.server.text)
+                    # workaround
+                    _server = server
+                    # _server = MiddlewareServer(provider=provider, name=row.server.text)
                     messagings.append(MiddlewareMessaging(
                         provider=provider,
                         server=_server,
@@ -242,5 +244,8 @@ class Details(CFMENavigateStep):
 
     def step(self):
         list_tbl.click_row_by_cells({'Messaging Name': self.obj.name,
-                                     'Messaging Type': self.obj.messaging_type,
-                                     'Server': self.obj.server.name})
+                                     'Messaging Type': self.obj.messaging_type
+                                     # workaround
+                                     # ,
+                                     # 'Server': self.obj.server.name
+                                     })

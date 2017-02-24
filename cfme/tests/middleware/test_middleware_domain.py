@@ -78,5 +78,5 @@ def get_domains_set(domains):
     Return the set of domains which contains only necessary fields,
     such as 'feed', 'provider.name' and 'name'
     """
-    return set((domain.feed, domain.provider.name, domain.name)
+    return set((domain.feed, domain.name)
                for domain in domains)

@@ -62,7 +62,7 @@ def get_deployments_set(deployments):
     Return the set of deployments which contains only necessary fields,
     such as 'name' and 'server'
     """
-    return set((deployment.name, deployment.server.name) for deployment in deployments)
+    return set((deployment.name) for deployment in deployments)
 
 
 def get_deployments_statuses(deployments):

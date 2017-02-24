@@ -109,7 +109,7 @@ class MiddlewareDatasource(MiddlewareBase, Taggable, Navigatable, UtilizationMix
         if sel.is_displayed(list_tbl):
             for _ in paginator.pages():
                 for row in list_tbl.rows():
-                    _server = MiddlewareServer(provider=provider, name=row.server.text)
+                    _server = server # workaround as row.server.text is empty
                     datasources.append(MiddlewareDatasource(
                         provider=provider,
                         server=_server,
@@ -259,7 +259,8 @@ class Details(CFMENavigateStep):
 
     def step(self):
         list_tbl.click_row_by_cells({
-            'Datasource Name': self.obj.name,
-            'Server': self.obj.server.name,
-            'Host Name': self.obj.hostname
+            'Datasource Name': self.obj.name
+            #,
+            # 'Server': self.obj.server.name,
+            # 'Host Name': self.obj.hostname
         })

@@ -181,7 +181,7 @@ def test_create_delete_datasource(provider, datasource):
     datasource_name = "Datasource [{}]".format(datasource.datasource_name)
     verify_datasource_listed(provider, datasource_name, server)
     delete_datasource(provider, server, datasource_name)
-    verify_datasource_not_listed(provider, datasource_name)
+    verify_datasource_not_listed(provider, datasource_name, server)
 
 
 def delete_datasource(provider, server, datasource_name):

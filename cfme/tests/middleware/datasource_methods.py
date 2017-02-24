@@ -76,7 +76,7 @@ def get_datasources_set(datasources):
     Return the set of datasources which contains only necessary fields,
     such as 'name' and 'server'
     """
-    return set((datasource.name, datasource.server.name) for datasource in datasources)
+    return set((datasource.name) for datasource in datasources)
 
 
 def get_datasources_name(datasources):

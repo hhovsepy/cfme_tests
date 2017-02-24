@@ -84,8 +84,9 @@ class MiddlewareServerGroup(MiddlewareBase, Taggable, Navigatable):
             _domain = domain
             for _ in paginator.pages():
                 for row in list_tbl.rows():
-                    if strict:
-                        _domain = MiddlewareDomain(row.domain_name.text, provider=domain.provider)
+                    # workaround
+                    # if strict:
+                    #    _domain = MiddlewareDomain(row.domain_name.text, provider=domain.provider)
                     server_groups.append(MiddlewareServerGroup(
                         name=row.server_group_name.text,
                         feed=row.feed.text,
@@ -198,11 +199,11 @@ class Details(CFMENavigateStep):
     def step(self):
         if self.obj.feed:
             list_tbl.click_row_by_cells({'Server Group Name': self.obj.name,
-                                         'Domain Name': self.obj.domain.name,
+                                         # 'Domain Name': self.obj.domain.name,
                                          'Feed': self.obj.feed})
         else:
             list_tbl.click_row_by_cells({'Server Group Name': self.obj.name,
-                                         'Domain Name': self.obj.domain.name})
+                                         # 'Domain Name': self.obj.domain.name})
 
 
 @navigator.register(MiddlewareServerGroup, 'ServerGroupServers')

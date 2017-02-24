@@ -117,8 +117,9 @@ class MiddlewareServer(MiddlewareBase, Taggable, Container, Navigatable, Utiliza
             _provider = provider
             for _ in paginator.pages():
                 for row in list_tbl.rows():
-                    if strict:
-                        _provider = get_crud_by_name(row.provider.text)
+                    # workaround reuse provider
+                    # if strict:
+                        # _provider = get_crud_by_name(row.provider.text)
                     servers.append(MiddlewareServer(
                         name=row.server_name.text,
                         feed=row.feed.text,

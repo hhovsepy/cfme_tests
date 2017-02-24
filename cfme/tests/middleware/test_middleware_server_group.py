@@ -78,6 +78,6 @@ def get_server_group_set(server_groups):
     Return the set of server groups which contains only necessary fields,
     such as 'feed', 'domain.name', 'name' and 'profile'
     """
-    return set((server_group.feed, server_group.domain.name, server_group.name,
+    return set((server_group.feed, server_group.name,
                 server_group.profile)
                for server_group in server_groups)

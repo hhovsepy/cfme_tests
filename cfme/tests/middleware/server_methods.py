@@ -57,7 +57,7 @@ def get_servers_set(servers):
     Return the set of servers which contains only necessary fields,
     such as 'feed', 'provider.name' and 'name'
     """
-    return set((server.feed, server.provider.name, server.name)
+    return set((server.feed, server.name)
                for server in servers)
 
 

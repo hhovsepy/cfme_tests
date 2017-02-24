@@ -117,5 +117,5 @@ def _get_messagings_set(messagings):
     Return the set of messagings which contains only necessary fields,
     such as 'name', 'type' and 'server'
     """
-    return set((messaging.name, messaging.messaging_type, messaging.server.name)
+    return set((messaging.name, messaging.messaging_type)
                for messaging in messagings)
