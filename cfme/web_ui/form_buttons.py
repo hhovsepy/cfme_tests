@@ -28,9 +28,9 @@ class FormButton(Pretty):
 
     class Button:
         """Holds pieces of the XPath to be assembled."""
-        TAG_TYPES = "//a | //button | //img | //input"
+        TAG_TYPES = "//a | //button | //img | //input | //miq-button"
         TYPE_CONDITION = (
-            "(contains(@class, 'button') or contains(@class, 'btn') or contains(@src, 'button'))"
+            "(contains(@class, 'button') or contains(@class, 'btn') or contains(@src, 'button') or contains(@class, 'ng-isolate-scope'))"
         )
         DIMMED = "(contains(@class, 'dimmed') " \
             "or contains(@class, 'disabled') " \
@@ -97,9 +97,9 @@ class FormButton(Pretty):
 
     @property
     def can_be_clicked(self):
-        """Whether the button is displayed, therefore clickable."""
+        """Whether the button is enabled, therefore clickable."""
         try:
-            return sel.is_displayed(self, move_to=True)
+            return sel.get_attribute(self, 'enabled') == 'true'
         except NoSuchElementException:
             return False
 
