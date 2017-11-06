@@ -7,6 +7,7 @@ from wrapanapi.hawkular import CanonicalPath
 from cfme.common import WidgetasticTaggable, UtilizationMixin
 from cfme.exceptions import MiddlewareServerNotFound, \
     MiddlewareServerGroupNotFound
+from cfme.middleware.datasource import DatasourceCollection
 from cfme.middleware.domain import MiddlewareDomain
 from cfme.middleware.provider import (
     MiddlewareBase, download
@@ -94,6 +95,7 @@ class MiddlewareServer(MiddlewareBase, WidgetasticTaggable, Container, Reportabl
         Navigatable.__init__(self, appliance=appliance)
         if name is None:
             raise KeyError("'name' should not be 'None'")
+        self._collections = {'datasources': DatasourceCollection}
         self.name = name
         self.provider = provider
         self.product = kwargs['product'] if 'product' in kwargs else None

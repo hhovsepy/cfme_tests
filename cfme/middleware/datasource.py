@@ -1,3 +1,4 @@
+import attr
 
 from navmazing import NavigateToSibling, NavigateToAttribute
 from widgetastic.exceptions import NoSuchElementException
@@ -6,12 +7,13 @@ from wrapanapi.hawkular import CanonicalPath
 from cfme.common import WidgetasticTaggable, UtilizationMixin
 from cfme.exceptions import MiddlewareDatasourceNotFound
 from cfme.middleware.provider import (
-    MiddlewareBase, download, get_server_name)
+    MiddlewareBase, download, get_server_name, MiddlewareProvider)
 from cfme.middleware.provider import parse_properties
 from cfme.middleware.provider.hawkular import HawkularProvider
 from cfme.middleware.provider.middleware_views import (DatasourceDetailsView,
                                                        DatasourceAllView)
 from cfme.middleware.server import MiddlewareServer
+from cfme.modeling.base import BaseCollection, BaseEntity
 from cfme.utils import attributize_string
 from cfme.utils.appliance import Navigatable, current_appliance
 from cfme.utils.appliance.implementations.ui import navigator, CFMENavigateStep, navigate_to
@@ -19,7 +21,7 @@ from cfme.utils.providers import get_crud_by_name, list_providers_by_class
 from cfme.utils.varmeth import variable
 
 
-def _db_select_query(name=None, nativeid=None, server=None, provider=None):
+def _db_select_query(name=None, nativeid=None, appliance=None):
     """Column order: `id`, `nativeid`, `name`, `properties`, `server_name`,
     `feed`, `provider_name`, `ems_ref`, `hostname`"""
     t_ms = current_appliance.db.client['middleware_servers']
@@ -40,67 +42,57 @@ def _db_select_query(name=None, nativeid=None, server=None, provider=None):
         query = query.filter(t_mds.name == name)
     if nativeid:
         query = query.filter(t_mds.nativeid == nativeid)
-    if server:
-        query = query.filter(t_ms.name == server.name)
-        if server.feed:
-            query = query.filter(t_ms.feed == server.feed)
-    if provider:
-        query = query.filter(t_ems.name == provider.name)
+    if appliance and isinstance(appliance, MiddlewareServer):
+        query = query.filter(t_ms.name == appliance.name)
+        if appliance.feed:
+            query = query.filter(t_ms.feed == appliance.feed)
+    if appliance and isinstance(appliance, MiddlewareProvider):
+        query = query.filter(t_ems.name == appliance.name)
     return query
 
 
-def _get_datasources_page(provider=None, server=None):
-    if server:  # if server instance is provided navigate through server page
-        return navigate_to(server, 'ServerDatasources')
-    elif provider:  # if provider instance is provided navigate through provider page
-        return navigate_to(provider, 'ProviderDatasources')
+def _get_datasources_page(appliance=None):
+    if appliance and isinstance(appliance, MiddlewareServer):
+        # if server instance is provided navigate through server page
+        return navigate_to(appliance, 'ServerDatasources')
+    elif appliance and isinstance(appliance, MiddlewareProvider):
+        # if provider instance is provided navigate through provider page
+        return navigate_to(appliance, 'ProviderDatasources')
     else:  # if None(provider and server) given navigate through all middleware datasources page
         return navigate_to(MiddlewareDatasource, 'All')
 
 
-class MiddlewareDatasource(MiddlewareBase, WidgetasticTaggable, Navigatable, UtilizationMixin):
+@attr.s
+class MiddlewareDatasource(BaseEntity, MiddlewareBase, WidgetasticTaggable, Navigatable, UtilizationMixin):
     """
-    MiddlewareDatasource class provides details on datasource page.
-    Class methods available to get existing datasources list
+    Model of Middleware Datasource in cfme.
 
     Args:
         name: Name of the datasource
+        server: Server object of the datasource (MiddlewareServer)
         provider: Provider object (HawkularProvider)
         nativeid: Native id (internal id) of datasource
-        server: Server object of the datasource (MiddlewareServer)
         properties: Datasource driver name, connection URL and JNDI name
         db_id: database row id of datasource
-
-    Usage:
-
-        mydatasource = MiddlewareDatasource(name='FooDS',
-                                server=ser_instance,
-                                provider=haw_provider,
-                                properties='ds-properties')
-        datasources = MiddlewareDatasource.datasources() [or]
-        datasources = MiddlewareDeployment.datasources(provider=haw_provider) [or]
-        datasources = MiddlewareDeployment.datasources(provider=haw_provider,server=ser_instance)
     """
     property_tuples = [('name', 'Name'), ('nativeid', 'Nativeid'),
                        ('driver_name', 'Driver Name'), ('jndi_name', 'JNDI Name'),
                        ('connection_url', 'Connection URL'), ('enabled', 'Enabled')]
     taggable_type = 'MiddlewareDatasource'
 
-    def __init__(self, name, server, provider=None, appliance=None, **kwargs):
-        Navigatable.__init__(self, appliance=appliance)
-        if name is None:
-            raise KeyError("'name' should not be 'None'")
-        if not isinstance(server, MiddlewareServer):
-            raise KeyError("'server' should be an instance of MiddlewareServer")
-        self.name = name
-        self.provider = provider
-        self.server = server
-        self.nativeid = kwargs['nativeid'] if 'nativeid' in kwargs else None
-        self.hostname = kwargs['hostname'] if 'hostname' in kwargs else None
-        if 'properties' in kwargs:
-            for property in kwargs['properties']:
-                setattr(self, attributize_string(property), kwargs['properties'][property])
-        self.db_id = kwargs['db_id'] if 'db_id' in kwargs else None
+    pretty_attrs = ['name', 'server', 'provider', 'nativeid', 'hostname', 'properties', 'db_id']
+
+    name = attr.ib()
+    server = attr.ib()
+    provider = attr.ib(default=None)
+    nativeid = attr.ib(default=None)
+    hostname = attr.ib(default=None)
+    properties = attr.ib(default={})
+    db_id = attr.ib(default=None)
+
+    def __attrs_post_init__(self):
+        for property in self.properties:
+            setattr(self, attributize_string(property), self.properties[property])
 
     @classmethod
     def datasources(cls, provider=None, server=None):
@@ -253,7 +245,94 @@ class MiddlewareDatasource(MiddlewareBase, WidgetasticTaggable, Navigatable, Uti
             view.flash.assert_success_message('The selected datasources were removed')
 
 
-@navigator.register(MiddlewareDatasource, 'All')
+@attr.s
+class DatasourceCollection(BaseCollection):
+    """Collection class for `cfme.middleware.datasource.MiddlewareDatasource`"""
+    ENTITY = MiddlewareDatasource
+
+    def __init__(self, appliance, parent):
+        self.appliance = appliance
+        self.parent = parent
+
+    def all(self):
+        """Return all Datasources of the appliance in CFME UI.
+
+        Returns: a :py:class:`list`
+            of :py:class:`cfme.middleware.datasource.DatastoreCollection` instances
+        """
+        datasources = []
+        view = _get_datasources_page(appliance=self.appliance)
+        provider = (self.appliance if isinstance(self.appliance, MiddlewareProvider)
+                    else self.appliance.parent)
+        for entity in view.entities.get_all(surf_pages=True):
+            server = MiddlewareServer(provider=provider, name=entity.server.text)
+            datasources.append(self.instantiate(
+                self.appliance,
+                entity.datasource_name.text,
+                provider,
+                server,
+                None,
+                entity.host_name.text))
+        return datasources
+
+    def headers(self):
+        view = _get_datasources_page(appliance=self.appliance)
+        if view.jdr_reports.entities:
+            headers = [hdr.encode("utf-8")
+                       for hdr in view.entities.elements.headers if hdr]
+        return headers
+
+    def all_in_db(self):
+        """Return all Datasources of the appliance in CFME DB.
+
+        Returns: a :py:class:`list`
+            of :py:class:`cfme.middleware.datasource.DatastoreCollection` instances
+        """
+        datasources = []
+        rows = _db_select_query(appliance=self.appliance).all()
+        provider = (self.appliance if isinstance(self.appliance, MiddlewareProvider)
+                    else self.appliance.parent)
+        for datasource in rows:
+            server = MiddlewareServer(
+                name=datasource.server_name,
+                feed=datasource.feed,
+                provider=provider)
+            datasources.append(self.instantiate(
+                self.appliance,
+                datasource.name,
+                server,
+                provider,
+                datasource.nativeid,
+                datasource.hostname,
+                parse_properties(datasource.properties),
+                datasource.id))
+        return datasources
+
+    def all_in_mgmt(self):
+        """Return all Datasources of the appliance in Middleware Provider MGMT API.
+
+        Returns: a :py:class:`list`
+            of :py:class:`cfme.middleware.datasource.DatastoreCollection` instances
+        """
+        datasources = []
+        provider = (self.appliance if isinstance(self.appliance, MiddlewareProvider)
+                    else self.appliance.parent)
+        rows = provider.mgmt.inventory.list_server_datasource()
+        for datasource in rows:
+            server = MiddlewareServer(
+                name=get_server_name(datasource.path),
+                feed=datasource.path.feed_id,
+                provider=provider)
+            datasources.append(self.instantiate(
+                self.appliance,
+                datasource.name,
+                server,
+                provider,
+                datasource.id))
+        return datasources
+
+
+@navigator.register(DatasourceCollection, 'All')
 class All(CFMENavigateStep):
     VIEW = DatasourceAllView
     prerequisite = NavigateToAttribute('appliance.server', 'LoggedIn')
