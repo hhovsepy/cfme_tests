@@ -21,7 +21,11 @@ from deployment_methods import (
     get_resource_path
 )
 from jdbc_driver_methods import download_jdbc_driver, deploy_jdbc_driver
-from server_methods import get_eap_server
+from server_methods import (
+    get_eap_server,
+    verify_server_suspended,
+    get_domain_server
+)
 
 
 pytestmark = [
@@ -35,6 +39,32 @@ UNDEPLOYMENT_OK_EVENT = 'hawkular_deployment_remove.ok'
 DEPLOYMENT_FAIL_EVENT = 'hawkular_deployment.error'
 DS_CREATION_OK_EVENT = 'hawkular_datasource.ok'
 DS_DELETION_OK_EVENT = 'hawkular_datasource_remove.ok'
+SERVER_RELOAD_OK_EVENT = 'hawkular_server_reload.ok'
+SERVER_RESTART_OK_EVENT = 'hawkular_server_restart.ok'
+SERVER_SUSPEND_OK_EVENT = 'hawkular_server_suspend.ok'
+SERVER_RESUME_OK_EVENT = 'hawkular_server_resume.ok'
+SERVER_GROUP_RELOAD_OK_EVENT = 'hawkular_server_group_reload.ok'
+SERVER_GROUP_RESTART_OK_EVENT = 'hawkular_server_group_restart.ok'
+SERVER_GROUP_SUSPEND_OK_EVENT = 'hawkular_server_group_suspend.ok'
+SERVER_GROUP_RESUME_OK_EVENT = 'hawkular_server_group_resume.ok'
+
+
+@pytest.yield_fixture(scope="function")
+def server(provider):
+    server = get_eap_server(provider)
+    yield server
+    server.restart_server()
+
+
+@pytest.yield_fixture(scope="function")
+def domain_server(provider):
+    server = get_domain_server(provider)
+    yield server
+    # make sure server is resumed just in case, if after test server is suspended
+    server.resume_server()
+    # resume does not start stopped server
+    # make sure server is started after test execution
+    server.start_server()
 
 
 def test_load_deployment_timelines(provider):
@@ -90,6 +120,82 @@ def test_delete_dataource_timelines(provider):
     check_contains_event(timelines, before_test_date, DS_DELETION_OK_EVENT)
     load_event_summary(timelines)
     check_not_contains_event(timelines, before_test_date, DS_DELETION_OK_EVENT)
+
+
+def test_server_reload_timelines(provider, server):
+    """Tests server reload operation events on Timelines
+    """
+    before_test_date = datetime.utcnow()
+    gen_server_reload_events(server)
+    timelines = navigate_to(provider, 'Timelines')
+    load_event_details(timelines)
+    check_contains_event(timelines, before_test_date, SERVER_RELOAD_OK_EVENT)
+    load_event_summary(timelines)
+    check_not_contains_event(timelines, before_test_date, SERVER_RELOAD_OK_EVENT)
+
+
+def test_server_restart_timelines(provider, server):
+    """Tests server restart operation events on Timelines
+    """
+    before_test_date = datetime.utcnow()
+    gen_server_restart_events(server)
+    timelines = navigate_to(provider, 'Timelines')
+    load_event_details(timelines)
+    check_contains_event(timelines, before_test_date, SERVER_RESTART_OK_EVENT)
+    load_event_summary(timelines)
+    check_not_contains_event(timelines, before_test_date, SERVER_RESTART_OK_EVENT)
+
+
+def test_server_suspend_resume_timelines(provider, server):
+    """Tests server restart operation events on Timelines
+    """
+    before_test_date = datetime.utcnow()
+    gen_server_suspend_resume_events(provider, server)
+    timelines = navigate_to(provider, 'Timelines')
+    load_event_details(timelines)
+    check_contains_event(timelines, before_test_date, SERVER_SUSPEND_OK_EVENT)
+    check_contains_event(timelines, before_test_date, SERVER_RESUME_OK_EVENT)
+    load_event_summary(timelines)
+    check_not_contains_event(timelines, before_test_date, SERVER_SUSPEND_OK_EVENT)
+    check_not_contains_event(timelines, before_test_date, SERVER_RESUME_OK_EVENT)
+
+
+def test_domain_server_reload_timelines(provider, domain_server):
+    """Tests domain_server reload operation events on Timelines
+    """
+    before_test_date = datetime.utcnow()
+    gen_server_reload_events(domain_server)
+    timelines = navigate_to(provider, 'Timelines')
+    load_event_details(timelines)
+    check_contains_event(timelines, before_test_date, SERVER_RELOAD_OK_EVENT)
+    load_event_summary(timelines)
+    check_not_contains_event(timelines, before_test_date, SERVER_RELOAD_OK_EVENT)
+
+
+def test_domain_server_restart_timelines(provider, domain_server):
+    """Tests server restart operation events on Timelines
+    """
+    before_test_date = datetime.utcnow()
+    gen_server_restart_events(domain_server)
+    timelines = navigate_to(provider, 'Timelines')
+    load_event_details(timelines)
+    check_contains_event(timelines, before_test_date, SERVER_RESTART_OK_EVENT)
+    load_event_summary(timelines)
+    check_not_contains_event(timelines, before_test_date, SERVER_RESTART_OK_EVENT)
+
+
+def test_domain_server_suspend_resume_timelines(provider, domain_server):
+    """Tests server restart operation events on Timelines
+    """
+    before_test_date = datetime.utcnow()
+    gen_server_suspend_resume_events(provider, domain_server)
+    timelines = navigate_to(provider, 'Timelines')
+    load_event_details(timelines)
+    check_contains_event(timelines, before_test_date, SERVER_SUSPEND_OK_EVENT)
+    check_contains_event(timelines, before_test_date, SERVER_RESUME_OK_EVENT)
+    load_event_summary(timelines)
+    check_not_contains_event(timelines, before_test_date, SERVER_SUSPEND_OK_EVENT)
+    check_not_contains_event(timelines, before_test_date, SERVER_RESUME_OK_EVENT)
 
 
 def load_event_details(timelines):
@@ -185,6 +291,20 @@ def gen_ds_deletion_events(provider, datasource_params):
     datasource_name = gen_ds_creation_events(provider, datasource_params)
     delete_datasource(provider, datasource_name)
     return datasource_name
+
+
+def gen_server_reload_events(server):
+    server.reload_server()
+
+
+def gen_server_restart_events(server):
+    server.restart_server()
+
+
+def gen_server_suspend_resume_events(provider, server):
+    server.suspend_server()
+    verify_server_suspended(provider, server)
+    server.resume_server()
 
 
 def delete_datasource(provider, datasource_name):
